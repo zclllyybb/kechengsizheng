@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include "function.h"
 
 typedef struct Missile
@@ -43,7 +44,7 @@ int n_missiles, n_guns, n_antis;
 Missile missiles[MAXN], antis[MAXN];
 Gun guns[MAXN];
 extern int capture = 0, escape = 0;
-int current_missiles;
+int current_missiles, time;
 
 CHANGE_IMAGE void init_screen()
 {
@@ -147,6 +148,7 @@ CHANGE_IMAGE void display()
 {
 	recovery(); // 首先将已经移动过的物体原位还原为正确图像。
 	system("cls");
+	printf("已进行的时间: %d\n", time);
 	for (int i = 1; i <= height; i++)
 	{
 		for (int j = 1; j <= width; j++)
@@ -159,9 +161,9 @@ CHANGE_IMAGE void display()
 	}
 }
 
-void print_log(char log[MAXN][MAXN])
+void print_log(char (*log)[MAXN])
 {
-	for (int i = 0; i < MAXN && log[i][0] != '\0'; i++)
+	for (int i = 0; i < MAXN && strlen(log[i]) > 0; i++)
 		puts(log[i]);
 }
 
@@ -304,15 +306,13 @@ double calc_meet(int index)
  */
 bool run()
 {
-	static int time = 0;
+	time = 0;
 	++time;
 	// 清空本期日志
-	char log[MAXN][MAXN]; //日志
+	static char log[MAXN][MAXN]; //日志
 	int log_count = 0;
-	for (int i = 0; i < MAXN && log[i][0] != '\0'; i++)
-		log[i][0] = '\0';
-	
-	printf("已进行的时间: %d\n", time);
+	for (int i = 0; i < MAXN && strlen(log[i]) > 0; i++)
+		strcpy(log[i], "");
 	
 	//防空炮依次动作
 	for (int i = 1; i <= n_guns; i++)

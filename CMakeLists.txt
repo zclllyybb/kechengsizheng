@@ -9,4 +9,5 @@ add_executable(kechengsizheng main.c function.c function.h)
 
 add_executable(test_char2 test_char2.c)
 add_executable(test_enum test_enum.c)
-add_executable(test_run test_run.c function.c function.h)
+add_executable(test_run test_run.c)
+add_executable(test_array test_array.c function.h function.c)

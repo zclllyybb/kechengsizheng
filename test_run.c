@@ -1,11 +1,8 @@
-//
-// Created by Administrator on 2022/7/23.
-//
-
-#include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 #include <math.h>
-
 #ifdef _WIN32
 #include <windows.h>
 #define sleep(x) Sleep(x)
@@ -13,21 +10,33 @@
 #include <unistd.h>
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-
-#define CHANGE_IMAGE  //æˆ‘ä»¬ä½¿ç”¨ç‹¬ç«‹çš„å®å»é›†ä¸­æ ‡è®°æ‰€æœ‰çš„ä¿®æ”¹å‰ç«¯çš„åŠŸèƒ½
-
 #define MAXN 2000
 #define eps 1e-5
 
+#define CHANGE_IMAGE  //ÎÒÃÇÊ¹ÓÃ¶ÀÁ¢µÄºêÈ¥¼¯ÖĞ±ê¼ÇËùÓĞµÄĞŞ¸ÄÇ°¶ËµÄ¹¦ÄÜ
 #define RECOVERY 255
 #define IMG_EMPTY L' '
 #define IMG_MISSILE L'A'
 #define IMG_ANTI L'B'
 #define IMG_BOOM L'*'
 #define IMG_GUN L'G'
+
+void init_read();
+
+void init_screen();
+
+typedef struct PrintPos PrintPos; //Ç°ÏòÉùÃ÷
+
+PrintPos get_show_pos(double, double);
+
+typedef struct Pos Pos;
+
+double distance(Pos, Pos);
+
+bool run();
+
+extern int capture, escape; // ¿çÎÄ¼şÊ¹ÓÃÏàÍ¬µÄ¶ÔÏó£¬Ó¦µ±¸ø³öexternÉùÃ÷¡£
+
 
 
 typedef struct Missile
@@ -39,9 +48,9 @@ typedef struct Missile
 typedef struct Gun
 {
 	int x, y;
-	double speed; //	å¯¼å¼¹é€Ÿåº¦
-	int track_time; //	é”å®šç›®æ ‡æ‰€éœ€æ—¶é—´
-	int aim, wait; //	ç›®æ ‡ä¸é”å®šå½“å‰ç›®æ ‡å‰©ä½™æ‰€éœ€æ—¶é—´
+	double speed; //	µ¼µ¯ËÙ¶È
+	int track_time; //	Ëø¶¨Ä¿±êËùĞèÊ±¼ä
+	int aim, wait; //	Ä¿±êÓëËø¶¨µ±Ç°Ä¿±êÊ£ÓàËùĞèÊ±¼ä
 	int n_track;
 	int tracking[MAXN]; //	0-based
 } Gun;
@@ -77,17 +86,17 @@ void init_read()
 	width = height = n_missiles = n_guns = -1;
 	while (width < 0 || width > 1000)
 	{
-		printf("%s", "è¯·è¾“å…¥ç©ºåŸŸé•¿åº¦(æ¨è300ï¼Œæœ€å¤§1000):");
+		printf("%s", "ÇëÊäÈë¿ÕÓò³¤¶È(ÍÆ¼ö300£¬×î´ó1000):");
 		scanf("%d", &width);
 	}
 	while (height < 0 || height > 1000)
 	{
-		printf("%s", "è¯·è¾“å…¥ç©ºåŸŸå®½åº¦(æ¨è100ï¼Œæœ€å¤§1000):");
+		printf("%s", "ÇëÊäÈë¿ÕÓò¿í¶È(ÍÆ¼ö100£¬×î´ó1000):");
 		scanf("%d", &height);
 	}
 	while (n_missiles < 0 || n_missiles > 10)
 	{
-		printf("%s", "è¯·è¾“å…¥å¯¼å¼¹æ•°é‡(æœ€å¤§10):");
+		printf("%s", "ÇëÊäÈëµ¼µ¯ÊıÁ¿(×î´ó10):");
 		scanf("%d", &n_missiles);
 		current_missiles = n_missiles;
 	}
@@ -97,7 +106,7 @@ void init_read()
 		while (x < 0 || x > width || y < 0 || y > height || speed < 0 || speed > 10
 			   || angle < -M_PI || angle > M_PI)
 		{
-			printf("%s%d%s", "è¯·è¾“å…¥ç¬¬", i, "å‘å¯¼å¼¹åˆå§‹ä½ç½®æ¨ªã€çºµåæ ‡ã€é€Ÿåº¦ã€æ–¹ä½è§’(å¼§åº¦åˆ¶, -pi ~ pi):\n");
+			printf("%s%d%s", "ÇëÊäÈëµÚ", i, "·¢µ¼µ¯³õÊ¼Î»ÖÃºá¡¢×İ×ø±ê¡¢ËÙ¶È¡¢·½Î»½Ç(»¡¶ÈÖÆ, -pi ~ pi):\n");
 			scanf("%lf%lf%lf%lf", &x, &y, &speed, &angle);
 		}
 		Missile tmp = {x, y, speed, angle, true};
@@ -105,7 +114,7 @@ void init_read()
 	}
 	while (n_guns < 0 || n_guns > 10)
 	{
-		printf("%s", "è¯·è¾“å…¥é˜²ç©ºç‚®æ•°é‡(æœ€å¤§5):");
+		printf("%s", "ÇëÊäÈë·À¿ÕÅÚÊıÁ¿(×î´ó5):");
 		scanf("%d", &n_guns);
 	}
 	for (int i = 1; i <= n_guns; i++)
@@ -115,20 +124,20 @@ void init_read()
 		while (x < 0 || x > width || y < 0 || y > height || speed < 0 || speed > 100
 			   || track_time < 0 || track_time > 10)
 		{
-			printf("%s%d%s", "è¯·è¾“å…¥ç¬¬", i, "é—¨é˜²ç©ºç‚®ä½ç½®æ¨ªçºµåæ ‡ä¸å¼¹è¯é€Ÿåº¦(ä¸è¶…è¿‡100)ã€"
-										"è¿½è¸ªå¯¼å¼¹æ‰€éœ€æ—¶é—´:\n");
+			printf("%s%d%s", "ÇëÊäÈëµÚ", i, "ÃÅ·À¿ÕÅÚÎ»ÖÃºá×İ×ø±êÓëµ¯Ò©ËÙ¶È(²»³¬¹ı100)¡¢"
+										"×·×Ùµ¼µ¯ËùĞèÊ±¼ä:\n");
 			scanf("%d%d%lf%d", &x, &y, &speed, &track_time);
 		}
 		Gun tmp = {x, y, speed, track_time, -1, -1, 0};
 		guns[i] = tmp;
 	}
-	puts("é…ç½®å®Œæ¯•ã€‚å³å°†å¼€å§‹æ¨¡æ‹Ÿã€‚");
+	puts("ÅäÖÃÍê±Ï¡£¼´½«¿ªÊ¼Ä£Äâ¡£");
 	sleep(2000);
 }
 
 /**
- * è¿˜åŸæˆ˜åœºä¿¡æ¯ã€‚å› ä¸ºåæ ‡é‡åˆç­‰åŸå› change_xxxçš„å˜æ›´å¯èƒ½ä¼šåœ¨æ˜¾ç¤ºä¸Šå‡ºé”™ï¼Œå› æ­¤éœ€è¦è¿›è¡Œç»Ÿä¸€ä¿®æ­£ã€‚
- * æ˜¾ç¤ºä¼˜å…ˆçº§ä¸ºï¼šå¯¼å¼¹> åå¯¼å¯¼å¼¹> é˜²ç©ºç‚®ã€‚
+ * »¹Ô­Õ½³¡ĞÅÏ¢¡£ÒòÎª×ø±êÖØºÏµÈÔ­Òòchange_xxxµÄ±ä¸ü¿ÉÄÜ»áÔÚÏÔÊ¾ÉÏ³ö´í£¬Òò´ËĞèÒª½øĞĞÍ³Ò»ĞŞÕı¡£
+ * ÏÔÊ¾ÓÅÏÈ¼¶Îª£ºµ¼µ¯> ·´µ¼µ¼µ¯> ·À¿ÕÅÚ¡£
  */
 CHANGE_IMAGE void recovery()
 {
@@ -158,11 +167,11 @@ CHANGE_IMAGE void recovery()
 }
 
 /**
- * æ‰“å°æˆ˜åœºä¿¡æ¯
+ * ´òÓ¡Õ½³¡ĞÅÏ¢
  */
 CHANGE_IMAGE void display()
 {
-	recovery(); // é¦–å…ˆå°†å·²ç»ç§»åŠ¨è¿‡çš„ç‰©ä½“åŸä½è¿˜åŸä¸ºæ­£ç¡®å›¾åƒã€‚
+	recovery(); // Ê×ÏÈ½«ÒÑ¾­ÒÆ¶¯¹ıµÄÎïÌåÔ­Î»»¹Ô­ÎªÕıÈ·Í¼Ïñ¡£
 	system("cls");
 	for (int i = 1; i <= height; i++)
 	{
@@ -183,7 +192,7 @@ void print_log(char log[MAXN][MAXN])
 }
 
 /**
- * ç”±å®é™…åæ ‡è®¡ç®—æœ€é‚»è¿‘çš„åœ¨å›¾å½¢ç•Œé¢ä¸Šå±•ç¤ºçš„ä½ç½®ã€‚
+ * ÓÉÊµ¼Ê×ø±ê¼ÆËã×îÁÚ½üµÄÔÚÍ¼ĞÎ½çÃæÉÏÕ¹Ê¾µÄÎ»ÖÃ¡£
  */
 PrintPos get_show_pos(double x, double y)
 {
@@ -196,12 +205,12 @@ PrintPos get_show_pos(double x, double y)
 }
 
 /**
- * ä»¥ä¸‹ä¸¤ä¸ªå‡½æ•°ä¸ºæ¨¡æ‹Ÿå¯¼å¼¹å’Œåå¯¼å¯¼å¼¹éšç€æ—¶é—´è¿åŠ¨ï¼Œè®¡ç®—åæ ‡ã€‚
+ * ÒÔÏÂÁ½¸öº¯ÊıÎªÄ£Äâµ¼µ¯ºÍ·´µ¼µ¼µ¯Ëæ×ÅÊ±¼äÔË¶¯£¬¼ÆËã×ø±ê¡£
  */
 CHANGE_IMAGE bool change_missile(int index)
 {
 	PrintPos now = get_show_pos(missiles[index].x, missiles[index].y);
-	screen[now.x][now.y] = RECOVERY; //æ‰€æœ‰æ¸…é™¤çš„åŠ¨ä½œåº”å½“ç»Ÿä¸€å¤„ç†ï¼Œå› ä¸ºåŸä½ç½®ä»ç„¶å¯èƒ½å­˜åœ¨ç‰©ä½“ã€‚
+	screen[now.x][now.y] = RECOVERY; //ËùÓĞÇå³ıµÄ¶¯×÷Ó¦µ±Í³Ò»´¦Àí£¬ÒòÎªÔ­Î»ÖÃÈÔÈ»¿ÉÄÜ´æÔÚÎïÌå¡£
 	
 	missiles[index].x += missiles[index].speed * cos(missiles[index].angle);
 	missiles[index].y += missiles[index].speed * sin(missiles[index].angle);
@@ -209,7 +218,7 @@ CHANGE_IMAGE bool change_missile(int index)
 	if (missiles[index].x < 0 || missiles[index].x > width || missiles[index].y < 0 || missiles[index].y > height)
 	{
 		missiles[index].alive = false;
-		return true; //é€ƒç¦»é˜²ç©ºåŒºåŸŸ
+		return true; //ÌÓÀë·À¿ÕÇøÓò
 	}
 	
 	now = get_show_pos(missiles[index].x, missiles[index].y);
@@ -227,7 +236,7 @@ CHANGE_IMAGE int change_anti(int index)
 	
 	now = get_show_pos(antis[index].x, antis[index].y);
 	
-	//åå¯¼å¯¼å¼¹ä¼šæ£€æµ‹é™„è¿‘çš„æ•Œæ–¹å¯¼å¼¹å¹¶å¼•çˆ†ï¼Œå› æ­¤æœ€ç»ˆå‡»æ¯ç›®æ ‡ä¸ä¸€å®šæ˜¯ä¸€å¼€å§‹ç„å‡†çš„ç›®æ ‡å¯¼å¼¹ã€‚
+	//·´µ¼µ¼µ¯»á¼ì²â¸½½üµÄµĞ·½µ¼µ¯²¢Òı±¬£¬Òò´Ë×îÖÕ»÷»ÙÄ¿±ê²»Ò»¶¨ÊÇÒ»¿ªÊ¼Ãé×¼µÄÄ¿±êµ¼µ¯¡£
 	for (int i = 1; i <= n_missiles; i++)
 	{
 		Pos pos_anti = {antis[index].x, antis[index].y};
@@ -257,7 +266,7 @@ double distance(Pos lhs, Pos rhs)
 }
 
 /**
- * @return missileæ˜¯å¦å·²ç»è¢«gunæ‰“å‡»è¿‡
+ * @return missileÊÇ·ñÒÑ¾­±»gun´ò»÷¹ı
  */
 bool tracked(int gun, int missile)
 {
@@ -268,7 +277,7 @@ bool tracked(int gun, int missile)
 }
 
 /**
- * ä¸ºé˜²ç©ºç‚®é€‰å–æ”»å‡»ç›®æ ‡
+ * Îª·À¿ÕÅÚÑ¡È¡¹¥»÷Ä¿±ê
  */
 int choose_aim(int index)
 {
@@ -287,24 +296,24 @@ int choose_aim(int index)
 			d = now_d;
 		}
 	}
-	assert(number != -1); //ä¿è¯æ­£ç¡®é€‰æ‹©ç›®æ ‡
+	assert(number != -1); //±£Ö¤ÕıÈ·Ñ¡ÔñÄ¿±ê
 	return number;
 }
 
 /**
- * @return è¿”å›é˜²ç©ºç‚®æ‹¦æˆªå½“å‰é”å®šç›®æ ‡æ‰€éœ€çš„å‘å°„è§’åº¦ã€‚
+ * @return ·µ»Ø·À¿ÕÅÚÀ¹½Øµ±Ç°Ëø¶¨Ä¿±êËùĞèµÄ·¢Éä½Ç¶È¡£
  */
 double calc_meet(int index)
 {
 	int aim = guns[index].aim;
-	//ä½¿ç”¨long doubleå‡å°‘ç³»ç»Ÿè¯¯å·®ã€‚
+	//Ê¹ÓÃlong double¼õÉÙÏµÍ³Îó²î¡£
 	long double va = missiles[aim].speed,
 			vax = missiles[aim].speed * cos(missiles[aim].angle),
 			vay = missiles[aim].speed * sin(missiles[aim].angle),
 			vb = guns[index].speed,
 			X = fabs(missiles[aim].x - guns[index].x),
 			Y = fabs(missiles[aim].y - guns[index].y);
-	// ä¸‹åˆ—æ˜¯è§£æ–¹ç¨‹è¿‡ç¨‹ï¼š
+	// ÏÂÁĞÊÇ½â·½³Ì¹ı³Ì£º
 	long double l1 = powl(va, 2) - powl(vb, 2),
 			l2 = X * vax + Y * vay;
 	long double A = l1, B = -2 * l2, C = -(powl(X, 2) + powl(Y, 2));
@@ -315,74 +324,89 @@ double calc_meet(int index)
 	return (double) atanl(vbx / vby);
 }
 
-int run()
+
+/**
+ * @return True if NOT done.
+ */
+bool run()
 {
 	static int time = 0;
 	++time;
-	// æ¸…ç©ºæœ¬æœŸæ—¥å¿—
-	char log[MAXN][MAXN]; //æ—¥å¿—
+	// Çå¿Õ±¾ÆÚÈÕÖ¾
+	char log[MAXN][MAXN]; //ÈÕÖ¾
 	int log_count = 0;
 	for (int i = 0; i < MAXN && log[i][0] != '\0'; i++)
 		log[i][0] = '\0';
 	
-	printf("å·²è¿›è¡Œçš„æ—¶é—´: %d\n", time);
+	printf("ÒÑ½øĞĞµÄÊ±¼ä: %d\n", time);
 	
-	//é˜²ç©ºç‚®ä¾æ¬¡åŠ¨ä½œ
+	//·À¿ÕÅÚÒÀ´Î¶¯×÷
 	for (int i = 1; i <= n_guns; i++)
-		if (guns[i].aim == -1) // å½“å‰ç©ºé—²
+		if (guns[i].aim == -1) // µ±Ç°¿ÕÏĞ
 		{
-			int aim = choose_aim(i);// é€‰æ‹©æœ€è¿‘çš„æœªæ”»å‡»è¿‡çš„ç›®æ ‡
-			//å¼€å§‹è¿½è¸ªï¼Œç­‰å¾…è¿½è¸ªå®Œæˆ
+			int aim = choose_aim(i);// Ñ¡Ôñ×î½üµÄÎ´¹¥»÷¹ıµÄÄ¿±ê
+			//¿ªÊ¼×·×Ù£¬µÈ´ı×·×ÙÍê³É
 			guns[i].aim = aim;
 			guns[i].wait = guns[i].track_time;
-			//è®°å½•æ—¥å¿—
+			//¼ÇÂ¼ÈÕÖ¾
 			char tmp_log[MAXN];
-			sprintf(tmp_log, "é˜²ç©ºç‚®%dæ­£åœ¨é”å®š%då·å¯¼å¼¹, ç›®æ ‡ä½äº(%.3lf, %.3lf)",
+			sprintf(tmp_log, "·À¿ÕÅÚ%dÕıÔÚËø¶¨%dºÅµ¼µ¯, Ä¿±êÎ»ÓÚ(%.3lf, %.3lf)",
 					i, aim, missiles[aim].x, missiles[aim].y);
 			strcpy(log[++log_count], tmp_log);
 		}
-		else if (--guns[i].wait == 0) // ç»§ç»­è¿½è¸ªç›®æ ‡å¯¼å¼¹ï¼Œç›´åˆ°æ­£ç¡®é”å®šï¼Œèƒ½å¤Ÿè®¡ç®—å‡ºæ‹¦æˆªä½ç½®ã€‚
+		else if (--guns[i].wait == 0) // ¼ÌĞø×·×ÙÄ¿±êµ¼µ¯£¬Ö±µ½ÕıÈ·Ëø¶¨£¬ÄÜ¹»¼ÆËã³öÀ¹½ØÎ»ÖÃ¡£
 		{
-			double meet_angle = calc_meet(i); //è®¡ç®—å‡ºæ‹¦æˆªä½ç½®
-			// å‘å°„å¯¼å¼¹
+			double meet_angle = calc_meet(i); //¼ÆËã³öÀ¹½ØÎ»ÖÃ
+			// ·¢Éäµ¼µ¯
 			Missile tmp = {guns[i].x, guns[i].y, guns[i].speed, meet_angle, true};
 			add_anti(tmp);
-			// è®°å½•æ‹¦æˆªï¼Œå¹¶è¿›å…¥ç©ºé—²çŠ¶æ€
+			// ¼ÇÂ¼À¹½Ø£¬²¢½øÈë¿ÕÏĞ×´Ì¬
 			guns[i].tracking[guns[i].n_track++] = guns[i].aim;
 			guns[i].aim = guns[i].wait = -1;
-			// è®°å½•æ—¥å¿—
+			// ¼ÇÂ¼ÈÕÖ¾
 			char tmp_log[MAXN];
-			sprintf(tmp_log, "é˜²ç©ºç‚®%då·²å‘å°„åå¯¼å¯¼å¼¹ï¼å‘å°„è§’åº¦ä¸º%.5lf", i, meet_angle);
+			sprintf(tmp_log, "·À¿ÕÅÚ%dÒÑ·¢Éä·´µ¼µ¼µ¯£¡·¢Éä½Ç¶ÈÎª%.5lf", i, meet_angle);
 			strcpy(log[++log_count], tmp_log);
 		}
-	// å¯¼å¼¹è¿åŠ¨
+	// µ¼µ¯ÔË¶¯
 	for (int i = 1; i <= n_missiles; i++)
-		if (change_missile(i)) //æˆåŠŸé€ƒé€¸
+		if (change_missile(i)) //³É¹¦ÌÓÒİ
 			escape++, current_missiles--;
-	// é˜²ç©ºå¯¼å¼¹è¿åŠ¨
+	// ·À¿Õµ¼µ¯ÔË¶¯
 	for (int i = 1; i <= n_antis; i++)
 	{
 		int result = change_anti(i);
-		if (result) // å¯¼å¼¹å…·ä½“çŠ¶æ€äº¤ç»™changeå‡½æ•°ï¼Œå…¶ä½™è®°å½•ç”±runæ¥å¤„ç†ï¼Œè¿™ä¹Ÿæ˜¯ä¸€ç§é‡è¦çš„å†…èš-è€¦åˆé€»è¾‘ã€‚
+		if (result) // µ¼µ¯¾ßÌå×´Ì¬½»¸øchangeº¯Êı£¬ÆäÓà¼ÇÂ¼ÓÉrunÀ´´¦Àí£¬ÕâÒ²ÊÇÒ»ÖÖÖØÒªµÄÄÚ¾Û-ñîºÏÂß¼­¡£
 		{
 			capture++, current_missiles--;
 			char tmp_log[MAXN];
-			sprintf(tmp_log, "æ•Œæ–¹å¯¼å¼¹%då·²è¢«æ‹¦æˆª!", result);
+			sprintf(tmp_log, "µĞ·½µ¼µ¯%dÒÑ±»À¹½Ø!", result);
 			strcpy(log[++log_count], tmp_log);
 		}
 	}
 	/**
-	 * @attention æ‰€æœ‰å›¾å½¢å¸§çš„ç»˜åˆ¶éƒ½æ˜¯åŸºäºä¸Šä¸€å¸§çš„å˜åŒ–ï¼Œè¿™ç§å˜åŒ–åº”å½“é™å®šäºç‰¹å®šçš„å‡ ä¸ªå‡½æ•°ï¼Œè€Œä¸èƒ½åœ¨run()çš„ä¸šåŠ¡é€»è¾‘ä¸­å¤„ç†ã€‚
-	 * è¿™é‡Œæˆ‘ä»¬é€šè¿‡CHANGE_IMAGEå®å»æ ‡è®°äº†è¿™äº›å‡½æ•°ã€‚è¿™ç§ä¸šåŠ¡-å±•ç¤ºåˆ†ç¦»çš„é€»è¾‘æ˜¯å¿…é¡»çš„ã€‚
+	 * @attention ËùÓĞÍ¼ĞÎÖ¡µÄ»æÖÆ¶¼ÊÇ»ùÓÚÉÏÒ»Ö¡µÄ±ä»¯£¬ÕâÖÖ±ä»¯Ó¦µ±ÏŞ¶¨ÓÚÌØ¶¨µÄ¼¸¸öº¯Êı£¬¶ø²»ÄÜÔÚrun()µÄÒµÎñÂß¼­ÖĞ´¦Àí¡£
+	 * ÕâÀïÎÒÃÇÍ¨¹ıCHANGE_IMAGEºêÈ¥±ê¼ÇÁËÕâĞ©º¯Êı¡£ÕâÖÖÒµÎñ-Õ¹Ê¾·ÖÀëµÄÂß¼­ÊÇ±ØĞëµÄ¡£
 	 */
 	
-	// åˆ·æ–°ç•Œé¢å¹¶è¾“å‡ºå½“å‰logã€‚
+	// Ë¢ĞÂ½çÃæ²¢Êä³öµ±Ç°log¡£
 	display();
 	print_log(log);
-	return current_missiles != 0;//è‹¥å°šæœ‰å¯¼å¼¹éœ€æ‹¦æˆªï¼Œè¿”å›trueã€‚
+	return current_missiles != 0;//ÈôÉĞÓĞµ¼µ¯ĞèÀ¹½Ø£¬·µ»Øtrue¡£
 }
+
+/**
+ * @endcode GBK
+ */
+
+
 int main()
 {
-	run();
+	init_read(); // ³õÊ¼»¯¶ÁÈë
+	init_screen();//³õÊ¼»¯ÆÁÄ»
+	printf("ÆÁÄ»³õÊ¼»¯Íê³É");
+	while (!run())
+		sleep(1000);
+	printf("ÑİÏ°½áÊø£¬À¹½Ø%dÃ¶µ¼µ¯£¬ÌÓÒİ%dÃ¶¡£", capture, escape);
 	return 0;
 }

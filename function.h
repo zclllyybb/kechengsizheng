@@ -5,11 +5,15 @@
 
 #define CHANGE_IMAGE  //我们使用独立的宏去集中标记所有的修改前端的功能
 #define RECOVERY 255
-#define IMG_EMPTY L' '
+#define IMG_EMPTY L'-'
 #define IMG_MISSILE L'A'
 #define IMG_ANTI L'B'
 #define IMG_BOOM L'*'
 #define IMG_GUN L'G'
+
+#ifdef DEBUG
+void print_log(char (*log)[MAXN]);
+#endif
 
 void init_read();
 
