@@ -290,6 +290,9 @@ double calc_meet(int index)
 	double w2 = pow(vA, 2) - pow(vB, 2),
 			w1 = -2 * vA * nx, w0 = pow(nx, 2) + pow(ny, 2); // 二次方程系数
 	double t = (sqrt((pow(w1, 2) - 4 * w0 * w2)) - w1) / (2 * w2); // 求根公式
+#ifdef DEBUG
+	printf("%d\n", t);
+#endif
 	assert(t > 0);
 	double thetaB = asin(ny / (vB * t)); // B 相对于 A速度方向 的发射角度
 	double ans = pi / 2 - thetaB + theta2 + theta3;
