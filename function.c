@@ -271,27 +271,30 @@ int choose_aim(int index)
 
 /**
  * @return 返回防空炮拦截当前锁定目标所需的发射角度。
- * TODO: 分情况讨论
+ * 先把坐标都变化为导弹速度坐标系上。然后解方程即可。
+ * A为导弹，B为炮塔。
  */
 double calc_meet(int index)
 {
+	double pi = acos(-1);
 	int aim = guns[index].aim;
-	//使用long double减少系统误差。
-	long double va = missiles[aim].speed,
-			vax = missiles[aim].speed * cos(missiles[aim].angle),
-			vay = missiles[aim].speed * sin(missiles[aim].angle),
-			vb = guns[index].speed,
-			X = fabs(missiles[aim].x - guns[index].x),
-			Y = fabs(missiles[aim].y - guns[index].y);
-	// 下列是解方程过程：
-	long double l1 = powl(va, 2) - powl(vb, 2),
-			l2 = X * vax + Y * vay;
-	long double A = l1, B = -2 * l2, C = -(powl(X, 2) + powl(Y, 2));
-	assert(A > 0);
-	long double t = (-B + sqrtl(powl(B, 2) - 4 * A * C)) / (2 * A);
+	double theta1 = atan2(missiles[aim].y, missiles[aim].x); // A在原坐标下极角, no use
+	assert(theta1 > 0 && theta1 < pi / 2);
+	double dBx = guns[index].x - missiles[aim].x, dBy = guns[index].y - missiles[aim].y; // 相差位置
+	double theta2 = missiles[aim].angle - atan2(dBy, dBx), // B 到 A速度方向 的投影角度
+	theta3 = atan2(dBy, dBx); // 原坐标系下AB之间的角度
+	double dB = sqrt(pow(dBx, 2) + pow(dBy, 2)); //AB相差距离
+	double nx = dB * cos(theta2), ny = dB * sin(theta2); // 投影后坐标
+	//解二次方程
+	double vA = missiles[index].speed, vB = guns[index].speed; // 两者速度
+	double w2 = pow(vA, 2) - pow(vB, 2),
+			w1 = -2 * vA * nx, w0 = pow(nx, 2) + pow(ny, 2); // 二次方程系数
+	double t = (sqrt((pow(w1, 2) - 4 * w0 * w2)) - w1) / (2 * w2); // 求根公式
 	assert(t > 0);
-	long double vbx = (vax * t - X) / t, vby = (vay * t - Y) / t;
-	return (double) atanl(vbx / vby);
+	double thetaB = asin(ny / (vB * t)); // B 相对于 A速度方向 的发射角度
+	double ans = pi / 2 - thetaB + theta2 + theta3;
+	assert(ans > -pi && ans < pi);
+	return ans;
 }
 
 /**
