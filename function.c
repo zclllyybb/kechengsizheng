@@ -1,18 +1,11 @@
+#include "function.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <math.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#define sleep(x) Sleep(x)
-#else
-#include <unistd.h>
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
-#include "function.h"
+#include <string.h>
 
 typedef struct Missile
 {
@@ -61,17 +54,17 @@ void init_read()
 	width = height = n_missiles = n_guns = -1;
 	while (width < 0 || width > 1000)
 	{
-		printf("%s", "请输入空域长度(推荐300，最大1000):");
+		wprintf(L"%s", "请输入空域长度(推荐300，最大1000):"); // 由于使用了中文，所以应当使用宽字符处理。
 		scanf("%d", &width);
 	}
 	while (height < 0 || height > 1000)
 	{
-		printf("%s", "请输入空域宽度(推荐100，最大1000):");
+		wprintf(L"%s", "请输入空域宽度(推荐100，最大1000):");
 		scanf("%d", &height);
 	}
 	while (n_missiles < 0 || n_missiles > 10)
 	{
-		printf("%s", "请输入导弹数量(最大10):");
+		wprintf(L"%s", "请输入导弹数量(最大10):");
 		scanf("%d", &n_missiles);
 		current_missiles = n_missiles;
 	}
@@ -79,9 +72,9 @@ void init_read()
 	{
 		double x = -1, y = -1, speed = -1, angle = -1;
 		while (x < 0 || x > width || y < 0 || y > height || speed < 0 || speed > 10
-			   || angle < -M_PI || angle > M_PI)
+																		 || angle < -M_PI || angle > M_PI)
 		{
-			printf("%s%d%s", "请输入第", i, "发导弹初始位置横、纵坐标、速度、方位角(弧度制, -pi ~ pi):\n");
+			wprintf(L"%s%d%s", "请输入第", i, "发导弹初始位置横、纵坐标，速度，方位角(弧度制, -pi ~ pi):\n");
 			scanf("%lf%lf%lf%lf", &x, &y, &speed, &angle);
 		}
 		Missile tmp = {x, y, speed, angle, true};
@@ -89,7 +82,7 @@ void init_read()
 	}
 	while (n_guns < 0 || n_guns > 10)
 	{
-		printf("%s", "请输入防空炮数量(最大5):");
+		wprintf(L"%s", "请输入防空炮数量(最大5):");
 		scanf("%d", &n_guns);
 	}
 	for (int i = 1; i <= n_guns; i++)
@@ -97,10 +90,10 @@ void init_read()
 		int x = -1, y = -1, track_time = -1;
 		double speed = -1;
 		while (x < 0 || x > width || y < 0 || y > height || speed < 0 || speed > 100
-			   || track_time < 0 || track_time > 10)
+																		 || track_time < 0 || track_time > 10)
 		{
-			printf("%s%d%s", "请输入第", i, "门防空炮位置横纵坐标与弹药速度(不超过100)、"
-										"追踪导弹所需时间:\n");
+			wprintf(L"%s%d%s", "请输入第", i, "门防空炮位置横纵坐标与弹药速度(不超过100)、"
+											  "追踪导弹所需时间:\n");
 			scanf("%d%d%lf%d", &x, &y, &speed, &track_time);
 		}
 		Gun tmp = {x, y, speed, track_time, -1, -1, 0};
@@ -161,10 +154,10 @@ CHANGE_IMAGE void display()
 	}
 }
 
-void print_log(char (*log)[MAXN])
+void print_log(wchar_t (*log)[MAXN])
 {
-	for (int i = 0; i < MAXN && strlen(log[i]) > 0; i++)
-		puts(log[i]);
+	for (int i = 0; i < MAXN && wcslen(log[i]) > 0; i++)
+		wprintf(L"%ls", log[i]);
 }
 
 /**
@@ -278,6 +271,7 @@ int choose_aim(int index)
 
 /**
  * @return 返回防空炮拦截当前锁定目标所需的发射角度。
+ * TODO: 分情况讨论
  */
 double calc_meet(int index)
 {
@@ -300,7 +294,6 @@ double calc_meet(int index)
 	return (double) atanl(vbx / vby);
 }
 
-
 /**
  * @return True if NOT done.
  */
@@ -309,10 +302,10 @@ bool run()
 	time = 0;
 	++time;
 	// 清空本期日志
-	static char log[MAXN][MAXN]; //日志
+	static wchar_t log[MAXN][MAXN]; //日志，中文宽字符。
 	int log_count = 0;
-	for (int i = 0; i < MAXN && strlen(log[i]) > 0; i++)
-		strcpy(log[i], "");
+	for (int i = 0; i < MAXN && wcslen(log[i]) > 0; i++)
+		swprintf(log[i], 10000, L"");
 	
 	//防空炮依次动作
 	for (int i = 1; i <= n_guns; i++)
@@ -323,10 +316,11 @@ bool run()
 			guns[i].aim = aim;
 			guns[i].wait = guns[i].track_time;
 			//记录日志
-			char tmp_log[MAXN];
-			sprintf(tmp_log, "防空炮%d正在锁定%d号导弹, 目标位于(%.3lf, %.3lf)",
-					i, aim, missiles[aim].x, missiles[aim].y);
-			strcpy(log[++log_count], tmp_log);
+			wchar_t tmp_log[MAXN];
+			swprintf(tmp_log, 10000, L"%s%d%s%d%s(%.3lf, %.3lf)",
+					 "防空炮", i, "正在锁定", aim, "号导弹, 目标位于",
+					 missiles[aim].x, missiles[aim].y);
+			wcscpy(log[++log_count], tmp_log);
 		}
 		else if (--guns[i].wait == 0) // 继续追踪目标导弹，直到正确锁定，能够计算出拦截位置。
 		{
@@ -338,9 +332,10 @@ bool run()
 			guns[i].tracking[guns[i].n_track++] = guns[i].aim;
 			guns[i].aim = guns[i].wait = -1;
 			// 记录日志
-			char tmp_log[MAXN];
-			sprintf(tmp_log, "防空炮%d已发射反导导弹！发射角度为%.5lf", i, meet_angle);
-			strcpy(log[++log_count], tmp_log);
+			wchar_t tmp_log[MAXN];
+			swprintf(tmp_log, 10000, L"%s%d%s%.5lf",
+					 "防空炮", i, "已发射反导导弹！发射角度为", meet_angle);
+			wcscpy(log[++log_count], tmp_log);
 		}
 	// 导弹运动
 	for (int i = 1; i <= n_missiles; i++)
@@ -353,16 +348,16 @@ bool run()
 		if (result) // 导弹具体状态交给change函数，其余记录由run来处理，这也是一种重要的内聚-耦合逻辑。
 		{
 			capture++, current_missiles--;
-			char tmp_log[MAXN];
-			sprintf(tmp_log, "敌方导弹%d已被拦截!", result);
-			strcpy(log[++log_count], tmp_log);
+			wchar_t tmp_log[MAXN];
+			swprintf(tmp_log, 10000, L"%s%d%s!",
+					 "敌方导弹", result, "已被拦截");
+			wcscpy(log[++log_count], tmp_log);
 		}
 	}
 	/**
 	 * @attention 所有图形帧的绘制都是基于上一帧的变化，这种变化应当限定于特定的几个函数，而不能在run()的业务逻辑中处理。
 	 * 这里我们通过CHANGE_IMAGE宏去标记了这些函数。这种业务-展示分离的逻辑是必须的。
 	 */
-	
 	// 刷新界面并输出当前log。
 	display();
 	print_log(log);
